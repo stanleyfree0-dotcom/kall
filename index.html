@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Калькулятор закупки</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--text:#f2f4f8;--mut:#8b93a3;--acc:#5b8cff;--ok:#3ddc97;--warn:#ffb454;--bad:#ff6b6b}
+@media (prefers-color-scheme: light){:root{--bg:#f2f4f8;--card:#fff;--line:#dde2ec;--text:#161a22;--mut:#667085}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;display:flex;justify-content:center;padding:18px}
+.wrap{width:100%;max-width:460px}
+h1{font-size:22px;margin:4px 0 12px}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px;margin-bottom:14px}
+.tab{margin:0;padding:9px 2px;border:0;border-radius:10px;background:transparent;color:var(--mut);font-size:12px;cursor:pointer}
+select{padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px}
+.item{padding:10px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.item small{color:var(--mut)}
+.zh{font-size:16px;margin:4px 0}
+a.del{color:var(--bad);font-size:12px;cursor:pointer;margin-left:8px}
+.tab.on{background:var(--acc);color:#fff}
+.hide{display:none}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mut);margin:0 0 6px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+input[type=text],input[type=number]{width:100%;padding:13px 10px;font-size:19px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--text);outline:none}
+.g2 input,.g4 input{font-size:16px;padding:10px}
+input:focus{border-color:var(--acc)}
+.total{background:linear-gradient(135deg,#3d6bff,#6a4dff);border-radius:16px;padding:18px;color:#fff;margin-bottom:14px}
+.total small{opacity:.85;font-size:13px}
+.total .big{font-size:38px;font-weight:700;margin-top:2px}
+.total .unit{margin-top:6px;font-size:14px;opacity:.9;min-height:18px}
+.profit{background:var(--card);border:1px solid var(--ok);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+.profit .big{font-size:26px;font-weight:700;color:var(--ok)}
+.profit .sub{font-size:13px;color:var(--mut);margin-top:4px}
+.status{font-size:12px;color:var(--mut);margin-top:10px;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.dot.on{background:var(--ok)}.dot.off{background:var(--bad)}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);margin-top:10px}
+.line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.line:last-child{border:0}
+.line span:first-child{color:var(--mut)}
+h2{font-size:15px;margin:0 0 12px}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+button.btn{margin-top:12px;width:100%;padding:11px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:12px;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Калькулятор закупки</h1>
+  <div class="tabs">
+    <button class="tab on" id="tabCalc">Калькулятор</button>
+    <button class="tab" id="tabOrd">Заказы</button>
+    <button class="tab" id="tabSel">Продавец</button>
+    <button class="tab" id="tabPh">Фразы</button>
+    <button class="tab" id="tabSet">Настройки</button>
+  </div>
+
+  <!-- ВКЛАДКА: КАЛЬКУЛЯТОР -->
+  <div id="pageCalc">
+    <div class="card">
+      <div class="g3">
+        <div><label>Цена, ¥</label><input id="price" type="text" inputmode="decimal" placeholder="0" autofocus></div>
+        <div><label>Вес, кг</label><input id="weight" type="text" inputmode="decimal" placeholder="0"></div>
+        <div><label>Кол-во</label><input id="qty" type="text" inputmode="numeric" value="1"></div>
+      </div>
+    </div>
+
+    <div class="total">
+      <small>Итоговая сумма</small>
+      <div class="big" id="total">0.00 BYN</div>
+      <div class="unit" id="unit"></div>
+    </div>
+
+    <div class="profit">
+      <small style="color:var(--mut);font-size:13px">Моя чистая прибыль</small>
+      <div class="big" id="profit">0.00 BYN</div>
+      <div class="sub" id="psub"></div>
+    </div>
+
+    <div class="card" id="recCard">
+      <small style="color:var(--mut);font-size:13px" id="recTitle">Цена, чтобы с каждой штуки было минимум 20 BYN</small>
+      <div class="line" style="margin-top:6px"><span>Рекомендуемая цена клиенту</span><b id="recTotal">0.00</b></div>
+      <div class="line"><span>За 1 шт</span><b id="recUnit">0.00</b></div>
+      <div class="line"><span>Моя прибыль с 1 шт</span><b id="recProfit">0.00</b></div>
+      <div class="note" id="recNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="g2">
+        <div><label>1 ¥ = … BYN (мой курс)</label><input id="cny" type="number" step="0.0001"></div>
+        <div><label>1 $ = … BYN</label><input id="usd" type="number" step="0.0001"></div>
+      </div>
+      <div class="status"><span class="dot" id="dot"></span><span id="st">Загружаю курс $…</span></div>
+      <label class="chk"><input type="checkbox" id="manual"> Курс $ вручную (не обновлять)</label>
+      <button class="btn" id="refresh">Обновить курс $ сейчас</button>
+    </div>
+
+    <div class="card">
+      <div class="line"><span>Товар (¥ × курс)</span><b id="r1">0.00</b></div>
+      <div class="line"><span id="l2">Доставка</span><b id="r2">0.00</b></div>
+      <div class="line"><span id="l3">Доп. расходы</span><b id="r3">0.00</b></div>
+      <div class="line"><span>Сумма до наценки</span><b id="r4">0.00</b></div>
+      <div class="line"><span id="l5">+ комиссия</span><b id="r5">0.00</b></div>
+      <button class="btn" id="copy">Скопировать итог</button>
+    </div>
+  </div>
+
+  <!-- ЗАКАЗЫ -->
+  <div id="pageOrd" class="hide">
+    <div class="card">
+      <h2>Новый заказ</h2>
+      <div class="g2">
+        <div><label>Клиент</label><input id="o_c" type="text"></div>
+        <div><label>Товар</label><input id="o_p" type="text"></div>
+        <div><label>Сумма, BYN</label><input id="o_s" type="number" step="0.01"></div>
+        <div><label>Моя прибыль, BYN</label><input id="o_pr" type="number" step="0.01"></div>
+      </div>
+      <button class="btn" id="o_fill">Взять сумму и прибыль из калькулятора</button>
+      <button class="btn" id="o_add" style="background:var(--acc);color:#fff;border:0">Добавить заказ</button>
+    </div>
+    <div class="card">
+      <div class="line"><span>Заказов</span><b id="o_n">0</b></div>
+      <div class="line"><span>Оборот</span><b id="o_sum">0.00</b></div>
+      <div class="line"><span>Прибыль</span><b id="o_pf" style="color:var(--ok)">0.00</b></div>
+      <div id="olist"></div>
+    </div>
+  </div>
+
+  <!-- ПРОДАВЕЦ -->
+  <div id="pageSel" class="hide">
+    <div class="card">
+      <h2>Оценка продавца</h2>
+      <div class="g2">
+        <div><label>Продаж (шт)</label><input id="v_s" type="number" value="0"></div>
+        <div><label>Рейтинг (0–5)</label><input id="v_r" type="number" step="0.1" value="0"></div>
+        <div><label>Плохих отзывов, %</label><input id="v_n" type="number" step="0.1" value="0"></div>
+        <div><label>Магазину, лет</label><input id="v_y" type="number" step="0.5" value="0"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="v_p"> Есть фото/видео в отзывах покупателей</label>
+      <label class="chk"><input type="checkbox" id="v_a"> Быстро и по делу отвечает</label>
+    </div>
+    <div class="total"><small>Надёжность продавца</small><div class="big" id="v_sc">—</div><div class="unit" id="v_vd"></div></div>
+  </div>
+
+  <!-- ФРАЗЫ -->
+  <div id="pagePh" class="hide">
+    <div class="card" id="phlist"></div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div id="pageSet" class="hide">
+    <div class="card">
+      <h2>Цены для клиента</h2>
+      <div class="g2">
+        <div><label>Комиссия, %</label><input id="s_fee" type="number" step="0.1"></div>
+        <div><label>Доставка, $/кг</label><input id="s_ship" type="number" step="0.01"></div>
+      </div>
+      <h2 style="margin-top:16px">Фиксированные расходы, BYN</h2>
+      <div class="g4">
+        <div><label>№1</label><input id="s_f1" type="number" step="0.01"></div>
+        <div><label>№2</label><input id="s_f2" type="number" step="0.01"></div>
+        <div><label>№3</label><input id="s_f3" type="number" step="0.01"></div>
+        <div><label>№4</label><input id="s_f4" type="number" step="0.01"></div>
+      </div>
+      <div class="note">Сумма добавляется к каждому заказу до комиссии. Лишнее поле можно поставить 0.</div>
+    </div>
+
+    <div class="card">
+      <h2>Мои расходы (для прибыли)</h2>
+      <div class="g2">
+        <div><label>Моя доставка, $/кг</label><input id="s_mycost" type="number" step="0.01"></div>
+        <div><label>Курьерский пакет, BYN</label><input id="s_bag" type="number" step="0.01"></div>
+        <div><label>Мой реальный курс ¥</label><input id="s_mycny" type="number" step="0.0001"></div>
+        <div><label>Мин. прибыль с 1 шт, BYN</label><input id="s_min" type="number" step="0.5"></div>
+      </div>
+      <div class="note">Курс ¥, по которому ты клиенту считаешь, меняется на вкладке «Калькулятор».</div>
+      <button class="btn" id="reset">Вернуть значения по умолчанию</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const num = v => { const n = parseFloat(String(v).replace(',', '.').replace(/\s/g,'')); return isNaN(n) ? 0 : n; };
+const f = n => n.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const DEFAULTS = { fee:6, ship:3.2, f1:7.25, f2:2, f3:2, f4:3, mycost:3, bag:0.4, mycny:0.45, min:20, cny:0.5 };
+const KEYS = Object.keys(DEFAULTS);
+const settingsIds = ['fee','ship','f1','f2','f3','f4','mycost','bag','mycny','min'];
+let lastTotal = 0, lastProfit = 0;
+
+function loadSettings(){
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem('settings')) || {}; }catch(e){}
+  KEYS.forEach(k => { const v = (saved[k] !== undefined) ? saved[k] : DEFAULTS[k];
+    if (k === 'cny') $('cny').value = v; else $('s_' + k).value = v; });
+}
+function saveSettings(){
+  const o = {};
+  settingsIds.forEach(k => o[k] = num($('s_' + k).value));
+  o.cny = num($('cny').value);
+  try{ localStorage.setItem('settings', JSON.stringify(o)); }catch(e){}
+}
+const S = k => num($('s_' + k).value);
+
+function calc(){
+  const price = num($('price').value), w = num($('weight').value);
+  const qty = Math.max(1, Math.round(num($('qty').value)) || 1);
+  const cny = num($('cny').value), usd = num($('usd').value);
+  const feeP = S('fee') / 100, shipRate = S('ship');
+  const fixedSum = S('f1') + S('f2') + S('f3') + S('f4');
+  const active = price > 0 || w > 0;
+
+  const goods = price * qty * cny;
+  const ship = w * qty * shipRate * usd;
+  const fixed = active ? fixedSum : 0;
+  const sub = goods + ship + fixed;       // товар + доставка + фикс. расходы
+  const fee = sub * feeP;                 // комиссия считается в самом конце
+  const total = sub + fee;
+  lastTotal = total;
+
+  const myShip = w * qty * S('mycost') * usd;
+  const bag = active ? S('bag') : 0;
+  const cnyGain = goods - price * qty * S('mycny');
+  const profit = fee + (ship - myShip) + cnyGain - bag;
+
+  const minP = S('min') * qty;
+  const gap = Math.max(0, minP - profit);          // сколько не хватает до минимума
+  const recTotal = Math.ceil((total + gap) * 100) / 100;
+  const recProfit = profit + (recTotal - total);
+  $('recTitle').textContent = 'Цена, чтобы с каждой штуки было минимум ' + f(S('min')) + ' BYN';
+  $('recTotal').textContent = f(recTotal) + ' BYN';
+  $('recUnit').textContent = f(recTotal / qty) + ' BYN';
+  $('recProfit').textContent = f(recProfit / qty) + ' BYN';
+  $('recNote').textContent = !active ? '' : gap > 0
+    ? 'К итогу добавлено ' + f(recTotal - total) + ' BYN (+' + f((recTotal - total) / total * 100) + '%), чтобы дойти до минимума.'
+    : 'Наценка уже даёт нужную прибыль, ничего добавлять не нужно.';
+  lastProfit = profit;
+  $('profit').textContent = f(profit) + ' BYN';
+  $('psub').textContent = 'комиссия: ' + f(fee) + ' + на доставке: ' + f(ship - myShip) + ' + на курсе ¥: ' + f(cnyGain) + ' − пакет: ' + f(bag) + (qty > 1 ? '  (≈ ' + f(profit/qty) + ' за шт)' : '');
+  $('l2').textContent = 'Доставка (кг × ' + shipRate + '$ × курс)';
+  $('l3').textContent = 'Доп. расходы (' + [S('f1'),S('f2'),S('f3'),S('f4')].join('+') + ')';
+  $('l5').textContent = '+ ' + S('fee') + '%';
+  $('r1').textContent = f(goods); $('r2').textContent = f(ship);
+  $('r3').textContent = f(fixed); $('r4').textContent = f(sub); $('r5').textContent = f(fee);
+  $('total').textContent = f(total) + ' BYN';
+  $('unit').textContent = f(sub) + ' + ' + S('fee') + '% (' + f(fee) + ') = ' + f(total) + ' BYN' + (qty > 1 ? '  ·  за 1 шт: ' + f(total / qty) : '');
+}
+
+function getJson(url){
+  const c = new AbortController(); const t = setTimeout(()=>c.abort(), 7000);
+  return fetch(url,{signal:c.signal}).then(r=>{ if(!r.ok) throw 0; return r.json(); }).finally(()=>clearTimeout(t));
+}
+const SOURCES = [
+  { name:'НБРБ', get: async () => { const u = await getJson('https://api.nbrb.by/exrates/rates/USD?parammode=2'); return u.Cur_OfficialRate / u.Cur_Scale; } },
+  { name:'open.er-api', get: async () => (await getJson('https://open.er-api.com/v6/latest/USD')).rates.BYN },
+  { name:'currency-api', get: async () => (await getJson('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json')).usd.byn }
+];
+function setStatus(cls, text){ $('dot').className = 'dot ' + cls; $('st').textContent = text; }
+
+async function loadRates(){
+  if ($('manual').checked) return;
+  for (const s of SOURCES){
+    try{
+      const r = await s.get();
+      if (!(r > 0)) throw 0;
+      $('usd').value = r.toFixed(4);
+      try{ localStorage.setItem('usd', r); }catch(e){}
+      setStatus('on', 'Курс $ из интернета (' + s.name + '), ' + new Date().toLocaleTimeString('ru-RU'));
+      calc(); return;
+    }catch(e){}
+  }
+  setStatus('off', 'Нет связи с сервисами курсов — стоит последний курс $, можно ввести вручную');
+}
+
+// вкладки
+const PG={calc:'pageCalc',ord:'pageOrd',sel:'pageSel',ph:'pagePh',set:'pageSet'};
+const TB={calc:'tabCalc',ord:'tabOrd',sel:'tabSel',ph:'tabPh',set:'tabSet'};
+function show(tab){
+  for (const k in PG){ $(PG[k]).classList.toggle('hide', k !== tab); $(TB[k]).classList.toggle('on', k === tab); }
+  calc();
+}
+for (const k in TB) $(TB[k]).onclick = () => show(k);
+
+// ---------- Заказы ----------
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ST = ['Заказан','В пути','Получен','Выдан'];
+let orders = []; try{ orders = JSON.parse(localStorage.getItem('orders')) || []; }catch(e){}
+function saveOrders(){ try{ localStorage.setItem('orders', JSON.stringify(orders)); }catch(e){} }
+function renderOrders(){
+  $('o_n').textContent = orders.length;
+  $('o_sum').textContent = f(orders.reduce((a,o)=>a+o.sum,0)) + ' BYN';
+  $('o_pf').textContent = f(orders.reduce((a,o)=>a+o.pr,0)) + ' BYN';
+  $('olist').innerHTML = orders.map((o,i)=>'<div class="item"><b>'+esc(o.c||'Без имени')+'</b> · '+esc(o.p||'товар')+'<br><small>'+f(o.sum)+' BYN · прибыль '+f(o.pr)+'</small><br><select data-i="'+i+'">'+ST.map(x=>'<option'+(x===o.s?' selected':'')+'>'+x+'</option>').join('')+'</select><a class="del" data-d="'+i+'">удалить</a></div>').join('');
+}
+$('o_fill').onclick = () => { $('o_s').value = lastTotal.toFixed(2); $('o_pr').value = lastProfit.toFixed(2); };
+$('o_add').onclick = () => {
+  orders.unshift({c:$('o_c').value.trim(), p:$('o_p').value.trim(), sum:num($('o_s').value), pr:num($('o_pr').value), s:ST[0]});
+  ['o_c','o_p','o_s','o_pr'].forEach(id => $(id).value = '');
+  saveOrders(); renderOrders();
+};
+$('olist').addEventListener('change', e => { if(e.target.dataset.i !== undefined){ orders[+e.target.dataset.i].s = e.target.value; saveOrders(); } });
+$('olist').addEventListener('click', e => { if(e.target.dataset.d !== undefined && confirm('Удалить заказ?')){ orders.splice(+e.target.dataset.d,1); saveOrders(); renderOrders(); } });
+
+// ---------- Оценка продавца ----------
+function rate(){
+  const sales = num($('v_s').value), r = num($('v_r').value), neg = num($('v_n').value), y = num($('v_y').value);
+  let sc = Math.min(30, Math.log10(sales + 1) / 4 * 30)
+         + Math.max(0, Math.min(25, (r - 4) * 25))
+         + Math.max(0, 20 - neg * 4)
+         + Math.min(15, y * 5)
+         + ($('v_p').checked ? 5 : 0) + ($('v_a').checked ? 5 : 0);
+  sc = Math.round(Math.min(100, sc));
+  $('v_sc').textContent = sc + ' / 100';
+  $('v_vd').textContent = sc >= 70 ? 'Надёжный продавец, можно брать' : sc >= 45 ? 'Осторожно: сначала возьми пробную партию и проверь фото отзывов' : 'Рискованно: лучше найти другого продавца';
+}
+['v_s','v_r','v_n','v_y'].forEach(id => $(id).addEventListener('input', rate));
+['v_p','v_a'].forEach(id => $(id).addEventListener('change', rate));
+
+// ---------- Фразы для продавцов ----------
+const PHRASES = [
+  ['Есть в наличии?','请问有现货吗？'],
+  ['Скиньте реальные фото или видео','能发一下实拍图或视频吗？'],
+  ['Точные размеры / замеры','请问这个尺码的具体尺寸是多少？能发一下实物测量图吗？'],
+  ['Из какого материала?','请问这是什么材质？'],
+  ['Когда отправите?','请问多久能发货？'],
+  ['Скидка при заказе нескольких штук','如果我多买几件，可以便宜一点吗？'],
+  ['Доставка по Китаю бесплатная?','请问可以包邮吗？'],
+  ['Проверьте на брак перед отправкой','发货前请帮我检查一下，确保没有瑕疵，谢谢。'],
+  ['Претензия: пришёл брак','收到的商品有问题，附上照片，请问怎么处理？希望可以退款或换货。']
+];
+$('phlist').innerHTML = PHRASES.map((p,i)=>'<div class="item"><small>'+p[0]+'</small><div class="zh">'+p[1]+'</div><a class="del" style="color:var(--acc);margin:0" data-c="'+i+'">Скопировать</a></div>').join('');
+$('phlist').addEventListener('click', e => { if(e.target.dataset.c !== undefined){ try{ navigator.clipboard.writeText(PHRASES[+e.target.dataset.c][1]); }catch(x){} e.target.textContent = 'Скопировано ✓'; setTimeout(()=>e.target.textContent='Скопировать',1200); } });
+renderOrders(); rate();
+
+// старт
+loadSettings();
+let u0 = 3.0; try{ const x = parseFloat(localStorage.getItem('usd')); if (x > 0) u0 = x; }catch(e){}
+$('usd').value = u0.toFixed(4);
+setStatus('', 'Загружаю курс $… (пока стоит примерное значение)');
+
+['price','weight','qty','cny','usd'].forEach(id => $(id).addEventListener('input', () => { saveSettings(); calc(); }));
+settingsIds.forEach(k => $('s_' + k).addEventListener('input', () => { saveSettings(); calc(); }));
+$('manual').addEventListener('change', () => { if(!$('manual').checked) loadRates(); else setStatus('', 'Ручной режим'); });
+$('refresh').addEventListener('click', () => { $('manual').checked = false; setStatus('', 'Обновляю…'); loadRates(); });
+$('reset').addEventListener('click', () => { try{ localStorage.removeItem('settings'); }catch(e){} loadSettings(); calc(); });
+$('copy').addEventListener('click', () => {
+  try{ navigator.clipboard.writeText(f(lastTotal) + ' BYN'); }catch(e){}
+  $('copy').textContent = 'Скопировано ✓';
+  setTimeout(()=> $('copy').textContent = 'Скопировать итог', 1500);
+});
+
+calc(); loadRates(); setInterval(loadRates, 10000);
+</script>
+</body>
+</html>
